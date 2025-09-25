@@ -15,7 +15,7 @@ const server = http.createServer(app); // This means: the HTTP server will deleg
 
 
 // ab iss line se socket.io humare server k upar baith gya ki ab mein dekhunga connection requests aur communicaiton sab.
-const io = new Server(server , {
+const io = new Server(server, {
     cors: {
         origin: '*',
     },
@@ -37,20 +37,96 @@ const port = process.env.PORT || 5000;
 
 
 
-const rooms = new Map(); 
+const rooms = new Map(); // keys: roomId and values: usernames of people in a room with specific room id 
 
 
-
+// socket object : one specific client connection
+// socket pr hum custom events lga sakte
+// io pr nhi bcoz woh bs mainly connection k liye use hota baki kaam hai sab socket hai usse hi krte
 io.on('connection', (socket) => {
-    console.log('User connected : ' , socket.id);
+    console.log('User connected : ', socket.id);
 
-    // ab user connect ho chuka hai backend se
+    // --------------------------------------------------------------------------------------------------------------------------------------
+    // ab user connect ho chuka hai backend se  
+    // --------------------------------------------------------------------------------------------------------------------------------------
+
 
     // bcoz initially abhi user connect hi hua hai and woh kisi room mein nhi hai
+    // these will tell us ki user kisi room mein hai ya nhi wagerah wagerah
     let currentRoom = null;
     let currentUser = null;
 
-    
+
+    // agar kahi join krne ki request aayi toh ye chal jaega
+    // frontend se roomId aur userName mangwa liya . This payload ({ roomId, userName }) is passed into the callback in the backend. .
+    // this runs when client emits a 'join' event
+    socket.on('join', ({ roomId, userName }) => {
+        // agar current user pehle se kisi room mein hai toh use bahar nikalo
+        if (currentRoom) {
+            socket.leave(currentRoom); // uss room se bahar nikalo socket ko
+            rooms.get(currentRoom).delete(currentUser); // map mein se bhi room se entry htao
+            // It sends a message/event to everyone currently in the room currentRoom, telling them which users are in that room now with an array of everyone in room .
+            io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom))); // currentRoom k sabhi logo ko emit (ya btado) ki iss bande ko bahar nikal diya hai
+        }
+
+        currentRoom = roomId;
+        currentUser = userName;
+
+        socket.join(roomId); // iss room ko join krenge ab
+
+        if (!rooms.has(roomId)) {
+            rooms.set(roomId, new Set());
+        }
+
+        rooms.get(roomId).add(userName);
+
+        io.to(roomId).emit("userJoined", Array.from(rooms.get(roomId)));
+    })
+
+
+    // agar code change ho toh 
+    // jis bande ne code change kra woh frontend se codeChange emit krega 
+    // yha hum uss event ko sunenge aur baki sab ko in that room inform krdenge from backend
+    socket.on('codeChange', ({ roomId, code }) => {
+
+        socket.to(roomId).emit("codeUpdate", code); // khud ko choodkr baki sabko btado ki codeUpdate hogya bcoz humne hi kiya hai toh humari screen pr toh updated code hi hoga
+
+    })
+
+
+    socket.on("leaveRoom", () => {
+        if (currentRoom && currentUser) {
+            rooms.get(currentRoom).delete(currentUser);
+            io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
+
+            socket.leave(currentRoom);
+
+            currentRoom = null;
+            currentUser = null;
+        }
+    });
+
+
+
+    socket.on("languageChange", ({ roomId, language }) => {
+        io.to(roomId).emit("languageUpdate", language);
+    });
+
+
+
+    // agar user reload kre toh usse room se nikal do (event disconnect tab chalta hai jab user browser band krde ya reload krde) 
+    socket.on('disconnect', () => {
+        if (currentRoom && currentUser) {
+            rooms.get(currentRoom).delete(currentUser);
+            io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
+        }
+    });
+
+
+    socket.on("typing", ({ roomId, userName }) => {
+        socket.to(roomId).emit("userTyping", userName);
+    });
+
 
 });
 /*
@@ -64,6 +140,14 @@ Listen for events from that client.
 Emit events/messages back to that client.
 Broadcast to other clients.
 This is how you manage real-time communication with multiple clients individually and collectively.
+--------------------------------------------------------------------------------------------------------------------------------------------
+Method	            What it does
+socket.join(room)	Adds the socket to a room (can receive room broadcasts)
+socket.leave(room)	Removes the socket from a room (stops receiving broadcasts)
+--------------------------------------------------------------------------------------------------------------------------------------------
+Method	            Sends message to	                        Use case example
+io.to(roomId)	    Everyone in the room, including the sender	Notify all users in a room about an event
+socket.to(roomId)	Everyone in the room except the sender	    Broadcast an event to others, excluding the sender
 */
 
 
