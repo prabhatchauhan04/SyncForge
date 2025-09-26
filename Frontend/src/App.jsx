@@ -3,6 +3,7 @@ import socket from './socket/socket.js'; // this line alone connected frontend t
 import Editor from '@monaco-editor/react';
 
 
+
 function App() {
 
     const [joined, setJoined] = useState(false); // tells if user joined hai kisi room mein ya nhi
@@ -139,89 +140,130 @@ function App() {
 
 
 
-
+    // if user is not joined in a room yet
     if (!joined) {
         return (
-            <>
-                <div>
-                    <div>
-                        <h1>Join Code Room</h1>
-                        <input
-                            type="text"
-                            placeholder='Room Id'
-                            value={roomId}
-                            onChange={(e) => setRoomId(e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder='User Name'
-                            value={userName}
-                            onChange={(e) => setUserName(e.target.value)}
-                        />
-                        <button onClick={joinRoom}>Join Room</button>
-                    </div>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200">
+                    <h1 className="text-3xl font-bold text-gray-800 text-center">Join a Code Room</h1>
+
+                    <input
+                        type="text"
+                        placeholder="Room ID"
+                        value={roomId}
+                        onChange={(e) => setRoomId(e.target.value)}
+                        className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Your Name"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+
+                    <button
+                        onClick={joinRoom}
+                        className="w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200"
+                    >
+                        Join Room
+                    </button>
                 </div>
-            </>
-        )
+            </div>
+        );
     }
 
 
 
-
+    // if user is already joined
     return (
-        <>
-            <div>
+        <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+            {/* Top Bar */}
+            <div className="bg-white px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 shadow-sm">
                 <div>
-                    <div>
-                        <h2>Code Room: {roomId}</h2>
-                        <button onClick={copyRoomId}>Copy Id</button>
-                        {
-                            copySuccess
-                                ? <span className="copy-success">Room ID copied successfully!</span>
-                                : null
-                        }
-                    </div>
-                    <h3>Users in the Room : </h3>
-                    <ul>
-                        {
-                            users.map((user, index) => {
-                                return <li key={index}>{user.slice(0, 8)}...</li>;
-                            })
-                        }
-                    </ul>
-                    <p>{typing}</p>
-                    <select value={language} onChange={handleLanguageChange}>
+                    <h2 className="text-xl font-semibold">Code Room: <span className="text-violet-600 font-mono">{roomId}</span></h2>
+                    <button
+                        onClick={copyRoomId}
+                        className="mt-1 text-sm text-blue-600 hover:underline"
+                    >
+                        Copy Room ID
+                    </button>
+                    {copySuccess && (
+                        <span className="ml-3 text-green-600 text-sm">Copied!</span>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <select
+                        value={language}
+                        onChange={handleLanguageChange}
+                        className="bg-white border border-gray-300 text-gray-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    >
                         <option value="javascript">JavaScript</option>
                         <option value="python">Python</option>
                         <option value="java">Java</option>
                         <option value="cpp">C++</option>
                     </select>
-                    <button onClick={leaveRoom}>Leave Room</button>
-                </div>
-                <div>
-                    {/* Editor component (@monaco-editor/react) renders a code editor with the following configuration: */}
-                    <Editor
-                        height={"100%"} // Sets the height of the editor to fill its container
-                        defaultLanguage={language} // Sets the initial language for syntax highlighting (e.g., 'javascript', 'python')
-                        language={language} // Updates the editor's language dynamically if the prop changes
-                        value={code} // The current code/content displayed in the editor
-                        onChange={handleCodeChange} // Callback function triggered when the code changes
-                        theme="vs-dark" // Applies the 'vs-dark' (dark mode) theme to the editor
-                        options={{
-                            minimap: { enabled: false }, // Disables the minimap on the right side of the editor(jaise vscode mein aata hai)
-                            fontSize: 14, // Sets the font size in the editor
-                        }}
-                    />
+                    <button
+                        onClick={leaveRoom}
+                        className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-200"
+                    >
+                        Leave Room
+                    </button>
                 </div>
             </div>
-        </>
-    )
+
+            {/* Users + Typing + Editor */}
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar */}
+                <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto shadow-inner">
+                    <h3 className="text-lg font-semibold mb-3">Users in Room:</h3>
+                    <ul className="space-y-2">
+                        {users.map((user, index) => (
+                            <li
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 rounded-md text-gray-700 font-mono"
+                            >
+                                {user.slice(0, 8)}...
+                            </li>
+                        ))}
+                    </ul>
+
+                    {typing && (
+                        <p className="mt-4 text-sm text-violet-600 italic animate-pulse">{typing}</p>
+                    )}
+                </div>
+
+                {/* Code Editor */}
+                <div className="flex-1 relative">
+                    {/* Editor component (@monaco-editor/react) renders a code editor with the following configuration: */}
+                    <div className="absolute inset-4 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                        <Editor
+                            height="100%"
+                            defaultLanguage={language} // Sets the initial language for syntax highlighting (e.g., 'javascript', 'python')
+                            language={language} // Updates the editor's language dynamically if the prop changes
+                            value={code} // The current code/content displayed in the editor
+                            onChange={handleCodeChange} // Callback function triggered when the code changes
+                            theme="light" // Uses light theme for the editor
+                            options={{
+                                minimap: { enabled: false }, // Disables the minimap on the right side of the editor (like in VS Code)
+                                fontSize: 14, // Sets the font size in the editor
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 
 
 
-export default App
+    export default App
 
 
 
