@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import socket from './socket/socket.js'; // this line alone connected frontend to backend bcoz abhi import hote time puri file chli thi
 import Editor from '@monaco-editor/react';
+import { nanoid } from 'nanoid';
 
 
 
@@ -37,7 +38,7 @@ function App() {
         });
 
 
-        socket.on('codeChange', (newCode) => {
+        socket.on('codeUpdate', (newCode) => {
             setCode(newCode);
         });
 
@@ -58,7 +59,7 @@ function App() {
         // cleanup function
         return () => {
             socket.off('userJoined');
-            socket.off('codeChange');
+            socket.off('codeUpdate');
             socket.off('userTyping');
             socket.off('languageUpdate');
         };
@@ -114,6 +115,15 @@ function App() {
 
 
 
+
+    const generateRoomId = () => {
+        const id = nanoid(36);
+        setRoomId(id);
+    }
+
+
+
+
     const copyRoomId = () => {
         window.navigator.clipboard.writeText(roomId);
         setCopySuccess(true);
@@ -143,34 +153,51 @@ function App() {
     // if user is not joined in a room yet
     if (!joined) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-                <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200">
-                    <h1 className="text-3xl font-bold text-gray-800 text-center">Join a Code Room</h1>
+            <>
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200">
+                        <h1 className="text-3xl font-bold text-gray-800 text-center">Join a Code Room</h1>
 
-                    <input
-                        type="text"
-                        placeholder="Room ID"
-                        value={roomId}
-                        onChange={(e) => setRoomId(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
+                        {/* So the input does not maintain its own value anymore. It always “reads” from the roomId state. That’s why this is called a controlled component. */}
+                        <input
+                            type="text"
+                            placeholder="Room ID"
+                            value={roomId} // Whatever is in your React state variable roomId will always be displayed in the input box.
+                            onChange={(e) => setRoomId(e.target.value)} // Whenever you type something, the input’s new text (e.target.value) is stored in your React state (roomId).
+                            // If onChange is not there: The input becomes read-only — you can’t type anything because React state (value={roomId}) controls it.Typing won’t change the state, so the input always shows whatever is in roomId.
+                            className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        />
 
-                    <input
-                        type="text"
-                        placeholder="Your Name"
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
+                        <input
+                            type="text"
+                            placeholder="Your Name"
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                            className="w-full p-3 rounded-lg bg-gray-100 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        />
 
-                    <button
-                        onClick={joinRoom}
-                        className="w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200"
-                    >
-                        Join Room
-                    </button>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Need a room?</span>
+                            <button
+                                onClick={generateRoomId}
+                                className="text-xs bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-700 font-medium px-3 py-1 rounded-md transition active:scale-95"
+                            >
+                                Generate Room ID
+                            </button>
+
+                        </div>
+
+                        <button
+                            onClick={joinRoom}
+                            className="w-full bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200 active:scale-95"
+                        >
+                            Join Room
+                        </button>
+
+
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 
@@ -263,7 +290,7 @@ function App() {
 
 
 
-    export default App
+export default App
 
 
 
