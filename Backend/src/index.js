@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = 'our_super_secret_key';
 
 // Room passwords store (in-memory)
-const rooms = new Map();
+const rooms = new Map(); // roomid : password (key : value)
 
 // Initialize Express app
 const app = express();
@@ -47,6 +47,23 @@ app.post('/api/auth/login', (req, res) => {
     const token = jwt.sign({ roomId }, JWT_SECRET, { expiresIn: '10h' });
     return res.json({ token });
 });
+
+
+// API route to Verify token
+app.post('/api/auth/verify-token', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ msg: 'No token provided' });
+
+    const token = authHeader.split(' ')[1]; // "Bearer <token>"
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        res.json({ msg: 'Token valid', roomId: decoded.roomId });
+    } catch (err) {
+        res.status(401).json({ msg: 'Invalid or expired token' });
+    }
+});
+
+
 
 // In-memory user tracking per room for Socket.IO
 const usersInRoom = new Map();

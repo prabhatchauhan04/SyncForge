@@ -33,11 +33,32 @@ const EditorPage = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('userName');
     const storedRoom = localStorage.getItem('roomId');
+    const token = localStorage.getItem('token');
 
-    if (!storedUser || !storedRoom || storedRoom !== roomId) {
+    if (!storedUser || !storedRoom || !token || storedRoom !== roomId) {
       navigate('/login');
       return;
     }
+
+    // Verify JWT with backend
+    const verifyToken = async () => {
+      try {
+        const res = await axios.post(
+          'http://localhost:5000/api/auth/verify-token',
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // if token is invalid, backend will throw error
+      } catch (err) {
+        // Invalid token: redirect to login
+        console.log('Token invalid or expired', err);
+        localStorage.clear();
+        navigate('/login');
+      }
+    };
+
+    verifyToken();
+
     setUserName(storedUser);
 
     // Fetch runtimes
@@ -235,9 +256,8 @@ const EditorPage = () => {
           <button
             onClick={runCode}
             disabled={isRunning}
-            className={`bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-200 ${
-              isRunning ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-200 ${isRunning ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             {isRunning ? 'Running…' : 'Run Code'}
           </button>
